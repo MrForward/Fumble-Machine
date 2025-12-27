@@ -37,19 +37,35 @@ export const CURRENCIES = [
     { code: "SGD", symbol: "S$", name: "Singapore Dollar", rate: 1.35 },
 ] as const;
 
-export type CurrencyCode = typeof CURRENCIES[number]["code"];
+export type CurrencyCode = typeof CURRENCIES[number]["code"] | string;
 
 export function getCurrencySymbol(code: CurrencyCode): string {
     const currency = CURRENCIES.find((c) => c.code === code);
     return currency?.symbol || "$";
 }
 
-export function convertFromUSD(amountUSD: number, code: CurrencyCode): number {
+export function getRate(code: CurrencyCode): number {
     const currency = CURRENCIES.find((c) => c.code === code);
-    return amountUSD * (currency?.rate || 1);
+    return currency?.rate || 1;
+}
+
+export function convertFromUSD(amountUSD: number, code: CurrencyCode): number {
+    return amountUSD * getRate(code);
 }
 
 export function convertToUSD(amount: number, code: CurrencyCode): number {
-    const currency = CURRENCIES.find((c) => c.code === code);
-    return amount / (currency?.rate || 1);
+    return amount / getRate(code);
 }
+
+// Convert between any two currencies
+export function convertBetweenCurrencies(
+    amount: number,
+    fromCurrency: CurrencyCode,
+    toCurrency: CurrencyCode
+): number {
+    if (fromCurrency === toCurrency) return amount;
+    // Convert to USD first, then to target currency
+    const amountInUSD = convertToUSD(amount, fromCurrency);
+    return convertFromUSD(amountInUSD, toCurrency);
+}
+

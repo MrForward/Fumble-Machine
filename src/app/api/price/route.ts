@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
 
     try {
         const purchaseDate = new Date(dateStr);
-        const today = new Date();
 
         // Fetch historical price
         const historicalData = await yahooFinance.historical(symbol, {
@@ -36,9 +35,12 @@ export async function GET(request: NextRequest) {
         const historicalPrice = historicalData[0].close;
         const actualDate = historicalData[0].date.toISOString().split("T")[0];
 
-        // Fetch current price
+        // Fetch current price and currency
         const quote = await yahooFinance.quote(symbol);
         const currentPrice = quote.regularMarketPrice;
+
+        // Get the stock's trading currency (e.g., "INR" for Indian stocks, "USD" for US stocks)
+        const stockCurrency = quote.currency || "USD";
 
         if (!currentPrice) {
             return NextResponse.json(
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest) {
             historicalPrice,
             currentPrice,
             actualDate,
+            stockCurrency, // Include the stock's trading currency
         });
     } catch (error) {
         console.error("Yahoo Finance API error:", error);
@@ -61,3 +64,4 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+

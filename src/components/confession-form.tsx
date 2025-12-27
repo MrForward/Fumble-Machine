@@ -33,7 +33,8 @@ import {
     type SearchResult,
     CURRENCIES,
     type CurrencyCode,
-    convertToUSD
+    convertToUSD,
+    convertBetweenCurrencies
 } from "@/lib/roasts";
 
 export interface FumbleResult {
@@ -127,9 +128,6 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
             return;
         }
 
-        // Convert price to USD for API call
-        const priceInUSD = convertToUSD(priceNum, currency);
-
         setIsLoading(true);
 
         try {
@@ -145,10 +143,22 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
 
             const data = await response.json();
 
-            // Calculate fumble using USD prices
-            const sharesOwned = priceInUSD / data.historicalPrice;
-            const currentValue = sharesOwned * data.currentPrice;
-            const fumbleAmount = currentValue - priceInUSD;
+            // Get the stock's trading currency (e.g., "INR" for Indian stocks, "USD" for US stocks)
+            const stockCurrency = data.stockCurrency || "USD";
+
+            // Convert user's price to the stock's currency for accurate calculation
+            const priceInStockCurrency = convertBetweenCurrencies(priceNum, currency, stockCurrency);
+
+            // Calculate shares using matching currencies
+            const sharesOwned = priceInStockCurrency / data.historicalPrice;
+
+            // Calculate current value in stock's currency, then convert to USD for standardization
+            const currentValueInStockCurrency = sharesOwned * data.currentPrice;
+            const currentValueInUSD = convertToUSD(currentValueInStockCurrency, stockCurrency);
+            const priceInUSD = convertToUSD(priceNum, currency);
+
+            // Fumble amount in USD (for consistent comparison)
+            const fumbleAmount = currentValueInUSD - priceInUSD;
 
             onResult({
                 itemName,
@@ -160,7 +170,7 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
                 purchaseDate: data.actualDate,
                 historicalPrice: data.historicalPrice,
                 currentPrice: data.currentPrice,
-                currentValue,
+                currentValue: currentValueInUSD,
                 fumbleAmount,
                 sharesOwned,
             });
