@@ -174,6 +174,18 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
                 fumbleAmount,
                 sharesOwned,
             });
+
+            // Track the fumble calculation (non-blocking)
+            fetch('/api/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'fumble',
+                    assetSymbol: asset,
+                    currency,
+                    fumbleAmount,
+                }),
+            }).catch(() => { }); // Silently ignore tracking errors
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong");
         } finally {

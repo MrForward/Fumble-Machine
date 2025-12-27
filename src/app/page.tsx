@@ -85,6 +85,17 @@ function FeedbackOptions({ onSelect }: { onSelect?: (id: string) => void }) {
     const handleSelect = (id: string) => {
         setSelected(id);
         onSelect?.(id);
+
+        // Track the emoji reaction (non-blocking)
+        const reaction = REACTIONS.find(r => r.id === id);
+        fetch('/api/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'reaction',
+                emoji: reaction?.id || id,
+            }),
+        }).catch(() => { }); // Silently ignore tracking errors
     };
 
     return (
