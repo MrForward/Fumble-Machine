@@ -4,9 +4,7 @@ import { trackFumbleCalculation, trackEmojiReaction, isRedisConfigured } from "@
 // Get country from request headers (Vercel provides this)
 function getCountry(request: NextRequest): string {
     // Vercel provides geo data in headers
-    const country = request.headers.get("x-vercel-ip-country") ||
-        request.geo?.country ||
-        "unknown";
+    const country = request.headers.get("x-vercel-ip-country") || "unknown";
     return country;
 }
 
