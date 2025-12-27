@@ -278,14 +278,14 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
                                 variant="outline"
                                 role="combobox"
                                 className={cn(
-                                    "w-full justify-between form-input",
+                                    "w-full justify-between form-input overflow-hidden",
                                     !asset && "text-muted-foreground"
                                 )}
                             >
                                 {asset ? (
-                                    <span className="flex items-center gap-2">
-                                        <span>{assetName}</span>
-                                        <span className="text-xs text-muted-foreground">({asset})</span>
+                                    <span className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                                        <span className="truncate">{assetName}</span>
+                                        <span className="text-xs text-muted-foreground shrink-0">({asset})</span>
                                     </span>
                                 ) : (
                                     "Search or select an asset..."
