@@ -83,7 +83,7 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
 
     // Debounced search with improved handling
     useEffect(() => {
-        if (searchQuery.length < 2) {
+        if (searchQuery.length < 3) {
             setSearchResults([]);
             return;
         }
@@ -393,7 +393,7 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
                         </PopoverContent>
                     </Popover>
                     <p className="text-xs text-muted-foreground mt-1">
-                        Type at least 2 characters to search any stock, crypto, or ETF worldwide
+                        Type at least 3 characters to search any stock, crypto, or ETF worldwide
                     </p>
                 </div>
             </div>

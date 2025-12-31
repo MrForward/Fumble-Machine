@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("q");
 
-    if (!query || query.trim().length < 2) {
+    if (!query || query.trim().length < 3) {
         return NextResponse.json(
-            { error: "Query must be at least 2 characters" },
+            { error: "Query must be at least 3 characters" },
             { status: 400 }
         );
     }
