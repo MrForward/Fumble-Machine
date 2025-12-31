@@ -130,6 +130,21 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the app.
 
+### Environment Variables (Optional)
+
+For production with caching enabled, set up Supabase:
+
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Run the SQL schema from `supabase/schema.sql` in the SQL Editor
+3. Add environment variables to Vercel:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
+```
+
+> Without Supabase, the app still works using in-memory caching (resets on deploy).
+
 ### Project Structure
 ```
 src/
