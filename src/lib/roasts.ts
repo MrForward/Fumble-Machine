@@ -25,6 +25,16 @@ export const POPULAR_ASSETS = [
     { value: "INFY.NS", label: "Infosys", icon: "💻", type: "Stock" },
     { value: "HDFCBANK.NS", label: "HDFC Bank", icon: "🏦", type: "Stock" },
     { value: "ICICIBANK.NS", label: "ICICI Bank", icon: "🏦", type: "Stock" },
+    { value: "BATA.NS", label: "Bata India", icon: "👟", type: "Stock" },
+    { value: "TATAMOTORS.NS", label: "Tata Motors", icon: "🚗", type: "Stock" },
+    { value: "ASIANPAINT.NS", label: "Asian Paints", icon: "🎨", type: "Stock" },
+    { value: "WIPRO.NS", label: "Wipro", icon: "💻", type: "Stock" },
+    { value: "SBIN.NS", label: "State Bank of India", icon: "🏦", type: "Stock" },
+    { value: "BHARTIARTL.NS", label: "Bharti Airtel", icon: "📱", type: "Stock" },
+    { value: "ITC.NS", label: "ITC Limited", icon: "🏢", type: "Stock" },
+    { value: "HINDUNILVR.NS", label: "Hindustan Unilever", icon: "🧴", type: "Stock" },
+    { value: "MARUTI.NS", label: "Maruti Suzuki", icon: "🚙", type: "Stock" },
+    { value: "TITAN.NS", label: "Titan Company", icon: "⌚", type: "Stock" },
 
     // Indices
     { value: "^GSPC", label: "S&P 500", icon: "📈", type: "Index" },
