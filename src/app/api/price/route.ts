@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
         {
             error: isRateLimited
-                ? "Service is temporarily busy. Please try again in a few minutes."
+                ? "Too many requests. Try crypto (Bitcoin, Ethereum) or wait 10-15 minutes for stocks."
                 : "Could not fetch price data. Please try a different asset or date."
         },
         { status: isRateLimited ? 429 : 500 }
