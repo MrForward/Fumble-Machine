@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import YahooFinance from "yahoo-finance2";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { POPULAR_ASSETS } from "@/lib/roasts";
 
 const yahooFinance = new YahooFinance({ suppressNotices: ["ripHistorical"] });
 
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
             if (data && !error) {
                 dbResults = data.map((d) => ({
                     symbol: d.symbol,
-                    name: d.symbol, // We don't store names, just use symbol
+                    name: d.symbol,
                     type: d.symbol.endsWith("-USD") ? "CRYPTOCURRENCY" : "EQUITY",
                     exchange: "Cached",
                 }));
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
                 exchange: quote.exchange,
             }));
 
-        // Merge DB results with API results (prefer API as it has names)
+        // Merge DB results with API results
         const seen = new Set(formattedResults.map((r) => r.symbol));
         for (const dbResult of dbResults) {
             if (!seen.has(dbResult.symbol)) {
@@ -91,17 +92,42 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error("Yahoo Finance search error:", error);
 
-        // If API fails but we have DB results, return those
-        if (dbResults.length > 0) {
+        // Step 4: Fallback - search popular assets locally
+        const popularMatches = POPULAR_ASSETS.filter((asset) => {
+            const searchStr = `${asset.label} ${asset.value}`.toLowerCase();
+            return searchStr.includes(q);
+        }).map((asset) => ({
+            symbol: asset.value,
+            name: asset.label,
+            type: asset.type,
+            exchange: "Popular",
+        }));
+
+        // Merge with DB results
+        const allResults = [...dbResults];
+        const seen = new Set(allResults.map((r) => r.symbol));
+        for (const match of popularMatches) {
+            if (!seen.has(match.symbol)) {
+                allResults.push(match);
+                seen.add(match.symbol);
+            }
+        }
+
+        // If we have any results from fallback, return them
+        if (allResults.length > 0) {
+            console.log(`[Search Fallback] Found ${allResults.length} matches in popular assets`);
+            searchCache.set(q, { results: allResults, timestamp: Date.now() });
+
             return NextResponse.json({
                 query,
-                results: dbResults,
+                results: allResults.slice(0, 10),
             });
         }
 
-        return NextResponse.json(
-            { error: "Search unavailable, please try again" },
-            { status: 500 }
-        );
+        // No results at all
+        return NextResponse.json({
+            query,
+            results: [],
+        });
     }
 }

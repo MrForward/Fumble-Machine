@@ -4,14 +4,31 @@
 
 // Popular asset presets
 export const POPULAR_ASSETS = [
+    // Crypto
     { value: "BTC-USD", label: "Bitcoin", icon: "₿", type: "Crypto" },
     { value: "ETH-USD", label: "Ethereum", icon: "Ξ", type: "Crypto" },
+    { value: "SOL-USD", label: "Solana", icon: "◎", type: "Crypto" },
+    { value: "DOGE-USD", label: "Dogecoin", icon: "Ð", type: "Crypto" },
+
+    // US Tech
     { value: "NVDA", label: "NVIDIA", icon: "◆", type: "Stock" },
     { value: "TSLA", label: "Tesla", icon: "⚡", type: "Stock" },
-    { value: "^GSPC", label: "S&P 500", icon: "📈", type: "Index" },
     { value: "AAPL", label: "Apple", icon: "🍎", type: "Stock" },
     { value: "AMZN", label: "Amazon", icon: "📦", type: "Stock" },
     { value: "GOOGL", label: "Google", icon: "🔍", type: "Stock" },
+    { value: "MSFT", label: "Microsoft", icon: "🪟", type: "Stock" },
+    { value: "META", label: "Meta", icon: "📘", type: "Stock" },
+
+    // Indian Stocks
+    { value: "RELIANCE.NS", label: "Reliance Industries", icon: "🏭", type: "Stock" },
+    { value: "TCS.NS", label: "Tata Consultancy Services", icon: "💼", type: "Stock" },
+    { value: "INFY.NS", label: "Infosys", icon: "💻", type: "Stock" },
+    { value: "HDFCBANK.NS", label: "HDFC Bank", icon: "🏦", type: "Stock" },
+    { value: "ICICIBANK.NS", label: "ICICI Bank", icon: "🏦", type: "Stock" },
+
+    // Indices
+    { value: "^GSPC", label: "S&P 500", icon: "📈", type: "Index" },
+    { value: "^NSEI", label: "NIFTY 50", icon: "📊", type: "Index" },
 ] as const;
 
 export type AssetSymbol = string;
