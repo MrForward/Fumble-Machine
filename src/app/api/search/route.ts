@@ -55,106 +55,90 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    // Step 3: Fetch from Yahoo Finance
+    // Step 3: Fetch from Yahoo Finance AND Single-Source-of-Truth Static List
     console.log(`[Search API] "${q}"`);
 
+    // Always fetch static results first/in-parallel because they are reliable
+    const { searchStatic } = require("@/lib/tickers");
+    let staticResults = [];
     try {
-        const results = await yahooFinance.search(query.trim());
+        // Await in case we switch to async static later
+        staticResults = await searchStatic(q);
+    } catch (e) {
+        console.error("Static search error:", e);
+    }
 
-        const formattedResults = results.quotes
-            .filter((quote) => {
-                const validTypes = ["EQUITY", "ETF", "CRYPTOCURRENCY", "INDEX"];
-                return quote.quoteType && validTypes.includes(quote.quoteType as string);
-            })
-            .slice(0, 10)
-            .map((quote) => ({
-                symbol: quote.symbol,
-                name: quote.shortname || quote.longname || quote.symbol,
-                type: quote.quoteType,
-                exchange: quote.exchange,
-            }));
+    try {
+        // Use Promise.race or just await? Yahoo might be slow/rate-limited.
+        // If Yahoo fails, we fallback to catch block.
+        // If Yahoo returns [] but we have static results, we should mix them.
 
-        // Merge DB results with API results
-        const seen = new Set(formattedResults.map((r) => r.symbol));
-        for (const dbResult of dbResults) {
-            if (!seen.has(dbResult.symbol)) {
-                formattedResults.push(dbResult);
-            }
+        let apiResults: any[] = [];
+        try {
+            const yahooData = await yahooFinance.search(query.trim());
+            apiResults = yahooData.quotes
+                .filter((quote) => {
+                    const validTypes = ["EQUITY", "ETF", "CRYPTOCURRENCY", "INDEX"];
+                    return quote.quoteType && validTypes.includes(quote.quoteType as string);
+                })
+                .map((quote) => ({
+                    symbol: quote.symbol,
+                    name: quote.shortname || quote.longname || quote.symbol,
+                    type: quote.quoteType,
+                    exchange: quote.exchange,
+                }));
+        } catch (apiError) {
+            console.error("Yahoo Search API failed (using fallback):", apiError);
+            // Verify if it is a rate limit or network error
         }
 
-        // Cache the results
-        searchCache.set(q, { results: formattedResults, timestamp: Date.now() });
+        // MERGE: Static (High Quality) + API (Broad) + DB (History)
+        // Priority: Static > API > DB
 
-        return NextResponse.json({
-            query,
-            results: formattedResults,
-        });
-    } catch (error) {
-        console.error("Yahoo Finance search error:", error);
+        const combined = new Map();
 
-        // Step 4: Fallback - Static Search (Much better than just "Popular")
-        // Lazy import
-        const { searchStatic } = require("@/lib/tickers");
-        const staticResults = searchStatic(q);
-
-        if (staticResults.length > 0) {
-            console.log(`[Search Fallback] Found ${staticResults.length} matches in static list`);
-
-            const results = staticResults.map((r: any) => ({
+        // 1. Add Static Results (High Confidence)
+        staticResults.forEach((r: any) => {
+            combined.set(r.symbol, {
                 symbol: r.symbol,
                 name: r.name,
                 type: r.type,
-                exchange: r.region || "Unknown",
-            }));
-
-            // Cache these results
-            searchCache.set(q, { results, timestamp: Date.now() });
-
-            return NextResponse.json({
-                query,
-                results,
+                exchange: r.region || "Top 500",
             });
-        }
+        });
 
-        // Final fallback: local popular assets
-        const popularMatches = POPULAR_ASSETS.filter((asset) => {
-            const searchStr = `${asset.label} ${asset.value}`.toLowerCase();
-            return searchStr.includes(q);
-        }).map((asset) => ({
-            symbol: asset.value,
-            name: asset.label,
-            type: asset.type,
-            exchange: "Popular",
-        }));
-
-        // Merge with DB results
-        const allResults = [...dbResults];
-        const seen = new Set(allResults.map((r) => r.symbol));
-        for (const match of [...staticResults, ...popularMatches]) {
-            // @ts-ignore
-            if (!seen.has(match.symbol)) {
-                // @ts-ignore
-                allResults.push(match);
-                // @ts-ignore
-                seen.add(match.symbol);
+        // 2. Add API Results (if not already present)
+        apiResults.forEach((r: any) => {
+            if (!combined.has(r.symbol)) {
+                combined.set(r.symbol, r);
             }
+        });
+
+        // 3. Add DB Results
+        dbResults.forEach((r: any) => {
+            if (!combined.has(r.symbol)) {
+                combined.set(r.symbol, r);
+            }
+        });
+
+        const finalResults = Array.from(combined.values()).slice(0, 15);
+
+        // Cache the results
+        if (finalResults.length > 0) {
+            searchCache.set(q, { results: finalResults, timestamp: Date.now() });
         }
 
-        // If we have any results from fallback, return them
-        if (allResults.length > 0) {
-            console.log(`[Search Fallback] Found ${allResults.length} matches total`);
-            searchCache.set(q, { results: allResults, timestamp: Date.now() });
-
-            return NextResponse.json({
-                query,
-                results: allResults.slice(0, 10),
-            });
-        }
-
-        // No results at all
         return NextResponse.json({
             query,
-            results: [],
+            results: finalResults,
+        });
+
+    } catch (error) {
+        console.error("Critical search error:", error);
+        // Even if everything exploded, try to return static results if we have them
+        return NextResponse.json({
+            query,
+            results: staticResults.slice(0, 10),
         });
     }
 }
