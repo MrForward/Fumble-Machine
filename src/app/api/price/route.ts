@@ -166,37 +166,10 @@ export async function GET(request: NextRequest) {
     // All sources failed
     const isRateLimited = lastError?.message?.includes("429") || lastError?.message?.includes("Too Many Requests");
 
-    // FALLBACK: Use estimated prices if API fails (especially for rate limits)
-    console.log(`[API] All live sources failed (RateLimited=${isRateLimited}). Using fallback estimate for ${symbolUpper}`);
-    const fallback = getFallbackPrice(symbolUpper, dateStr);
-
-    if (fallback) {
-        // Cache the fallback too so we don't re-calculate random numbers immediately
-        // But with a shorter TTL or distinct flag if we supported it. 
-        // For now, normal cache is fine as it's better than errors.
-        await cachePrice({
-            symbol: fallback.symbol,
-            date: dateStr,
-            historical_price: fallback.historicalPrice,
-            current_price: fallback.currentPrice,
-            currency: fallback.currency,
-            source: "estimate", // Distinct source
-        });
-
-        return NextResponse.json({
-            symbol: fallback.symbol,
-            historicalPrice: fallback.historicalPrice,
-            currentPrice: fallback.currentPrice,
-            actualDate: dateStr,
-            stockCurrency: fallback.currency,
-            isEstimate: true,
-        });
-    }
-
     return NextResponse.json(
         {
             error: isRateLimited
-                ? "Too many requests. Try crypto (Bitcoin, Ethereum) or wait 10-15 minutes for stocks."
+                ? "Heavy traffic is causing delays. Please try again in 10-15 minutes or use the 'Manual Price' option below."
                 : "Could not fetch price data. Please try a different asset or date."
         },
         { status: isRateLimited ? 429 : 500 }

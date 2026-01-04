@@ -216,7 +216,7 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
 
     return (
         <form onSubmit={handleSubmit} className="confession-form">
-            <div className="form-header">
+            <div className="form-header gap-2 mb-2">
                 <TrendingDown className="w-8 h-8 text-red-500" />
                 <h2 className="form-title">Your Confession</h2>
             </div>

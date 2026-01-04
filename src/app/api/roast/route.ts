@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Server-side only roast configuration - not visible in client source
 const ROASTS = [
+    { max: 5, item: "a pack of gum" },
     { max: 10, item: "a large pizza" },
     { max: 25, item: "a month of Netflix" },
     { max: 50, item: "a nice dinner out" },
@@ -23,6 +24,11 @@ const ROASTS = [
 
 function getRoast(fumbleAmount: number): string {
     const absAmount = Math.abs(fumbleAmount);
+
+    if (absAmount < 1) {
+        return "a singular grape";
+    }
+
     const roast = ROASTS.find((r) => absAmount <= r.max);
     return roast ? roast.item : "a yacht and then some";
 }
