@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import YahooFinance from "yahoo-finance2";
 import { getCachedPrice, cachePrice } from "@/lib/price-db";
 import { isCryptoSymbol, getCoinGeckoPrices } from "@/lib/coingecko";
+import { getFallbackPrice } from "@/lib/price-fallback";
 
 const yahooFinance = new YahooFinance({ suppressNotices: ["ripHistorical"] });
 
@@ -27,6 +28,30 @@ export async function GET(request: NextRequest) {
 
     const symbolUpper = symbol.toUpperCase();
     const purchaseDate = new Date(dateStr);
+    const manualPriceStr = searchParams.get("manualPrice");
+
+    // OPTION 0: Manual Price Override (User provided)
+    if (manualPriceStr) {
+        const manualPrice = parseFloat(manualPriceStr);
+        if (!isNaN(manualPrice) && manualPrice > 0) {
+            console.log(`[API] Using manual price for ${symbolUpper}: ${manualPrice}`);
+
+            // Import lazily or assumes it is available from previous step (it is)
+            const { estimateHistoricalPrice } = require("@/lib/price-fallback");
+
+            const historicalPrice = estimateHistoricalPrice(manualPrice, purchaseDate);
+
+            return NextResponse.json({
+                symbol: symbolUpper,
+                historicalPrice: historicalPrice,
+                currentPrice: manualPrice,
+                actualDate: dateStr,
+                stockCurrency: "USD", // Default to USD for manual for simplicity, or we could ask user
+                isEstimate: true,
+                source: "manual"
+            });
+        }
+    }
 
     // Step 1: Check database/memory cache
     const cached = await getCachedPrice(symbolUpper, dateStr);
@@ -141,6 +166,33 @@ export async function GET(request: NextRequest) {
     // All sources failed
     const isRateLimited = lastError?.message?.includes("429") || lastError?.message?.includes("Too Many Requests");
 
+    // FALLBACK: Use estimated prices if API fails (especially for rate limits)
+    console.log(`[API] All live sources failed (RateLimited=${isRateLimited}). Using fallback estimate for ${symbolUpper}`);
+    const fallback = getFallbackPrice(symbolUpper, dateStr);
+
+    if (fallback) {
+        // Cache the fallback too so we don't re-calculate random numbers immediately
+        // But with a shorter TTL or distinct flag if we supported it. 
+        // For now, normal cache is fine as it's better than errors.
+        await cachePrice({
+            symbol: fallback.symbol,
+            date: dateStr,
+            historical_price: fallback.historicalPrice,
+            current_price: fallback.currentPrice,
+            currency: fallback.currency,
+            source: "estimate", // Distinct source
+        });
+
+        return NextResponse.json({
+            symbol: fallback.symbol,
+            historicalPrice: fallback.historicalPrice,
+            currentPrice: fallback.currentPrice,
+            actualDate: dateStr,
+            stockCurrency: fallback.currency,
+            isEstimate: true,
+        });
+    }
+
     return NextResponse.json(
         {
             error: isRateLimited
@@ -161,38 +213,54 @@ async function fetchFromYahoo(
     actualDate: string;
     stockCurrency: string;
 } | null> {
-    // Fetch historical price using chart API
-    const chartData = await yahooFinance.chart(symbol, {
-        period1: date,
-        period2: new Date(date.getTime() + 7 * 24 * 60 * 60 * 1000),
-        interval: "1d",
-    });
+    try {
+        // 1. Fetch CURRENT price (from Chart API, not Live Quote API)
+        // using chart period1=7d makes it lighter and avoids "Live" rate limits
+        const currentChart = await yahooFinance.chart(symbol, {
+            period1: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+            interval: "1d",
+        });
 
-    if (!chartData?.quotes || chartData.quotes.length === 0) {
+        if (!currentChart?.quotes || currentChart.quotes.length === 0) {
+            console.warn(`[API] No recent data found for ${symbol}`);
+            return null;
+        }
+
+        // Get the very last quote (latest close)
+        const latestQuote = currentChart.quotes[currentChart.quotes.length - 1];
+        const currentPrice = latestQuote.close;
+        const stockCurrency = currentChart.meta?.currency || "USD"; // Meta often has currency
+
+        if (!currentPrice) return null;
+
+        // 2. Fetch HISTORICAL price
+        // We do this separately because the range might be huge (years ago), preventing a single query
+        const histChart = await yahooFinance.chart(symbol, {
+            period1: date,
+            period2: new Date(date.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 day window to find a trading day
+            interval: "1d",
+        });
+
+        if (!histChart?.quotes || histChart.quotes.length === 0) {
+            console.warn(`[API] No historical data found for ${symbol} @ ${date.toISOString()}`);
+            return null;
+        }
+
+        const histQuote = histChart.quotes[0];
+        const historicalPrice = histQuote.close;
+        const actualDate = histQuote.date?.toISOString().split("T")[0] || date.toISOString().split("T")[0];
+
+        if (!historicalPrice) return null;
+
+        return {
+            symbol,
+            historicalPrice,
+            currentPrice,
+            actualDate,
+            stockCurrency,
+        };
+    } catch (err) {
+        console.error(`[API] Yahoo fetch error for ${symbol}:`, err);
         return null;
     }
-
-    const historicalPrice = chartData.quotes[0].close;
-    const actualDate = chartData.quotes[0].date?.toISOString().split("T")[0] || date.toISOString().split("T")[0];
-
-    if (!historicalPrice) {
-        return null;
-    }
-
-    // Fetch current price
-    const quote = await yahooFinance.quote(symbol);
-    const currentPrice = quote.regularMarketPrice;
-    const stockCurrency = quote.currency || "USD";
-
-    if (!currentPrice) {
-        return null;
-    }
-
-    return {
-        symbol,
-        historicalPrice,
-        currentPrice,
-        actualDate,
-        stockCurrency,
-    };
 }

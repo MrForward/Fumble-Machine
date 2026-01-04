@@ -67,6 +67,10 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Manual Override State
+    const [useManualPrice, setUseManualPrice] = useState(false);
+    const [manualCurrentPrice, setManualCurrentPrice] = useState("");
+
     // Search state
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -132,9 +136,13 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
 
         try {
             const dateStr = format(date, "yyyy-MM-dd");
-            const response = await fetch(
-                `/api/price?symbol=${encodeURIComponent(asset)}&date=${dateStr}`
-            );
+            let apiUrl = `/api/price?symbol=${encodeURIComponent(asset)}&date=${dateStr}`;
+
+            if (useManualPrice && manualCurrentPrice) {
+                apiUrl += `&manualPrice=${encodeURIComponent(manualCurrentPrice)}`;
+            }
+
+            const response = await fetch(apiUrl);
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -260,6 +268,45 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
                             className="form-input price-input"
                         />
                     </div>
+                </div>
+
+                {/* Manual Price Override */}
+                <div className="form-group border-t border-dashed pt-4 mt-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <input
+                            type="checkbox"
+                            id="manual-price-toggle"
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                            checked={useManualPrice}
+                            onChange={(e) => setUseManualPrice(e.target.checked)}
+                        />
+                        <label htmlFor="manual-price-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
+                            I know the current price of {asset || "the asset"} (Optional)
+                        </label>
+                    </div>
+
+                    {useManualPrice && (
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="price-input-wrapper">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono">
+                                    $
+                                </span>
+                                <Input
+                                    id="manual-price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    placeholder={`Current price of ${asset || "asset"} in USD`}
+                                    value={manualCurrentPrice}
+                                    onChange={(e) => setManualCurrentPrice(e.target.value)}
+                                    className="form-input pl-8"
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                We'll use this price and estimate the historical value.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="form-group">
