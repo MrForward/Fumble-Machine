@@ -92,7 +92,31 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error("Yahoo Finance search error:", error);
 
-        // Step 4: Fallback - search popular assets locally
+        // Step 4: Fallback - Static Search (Much better than just "Popular")
+        // Lazy import
+        const { searchStatic } = require("@/lib/tickers");
+        const staticResults = searchStatic(q);
+
+        if (staticResults.length > 0) {
+            console.log(`[Search Fallback] Found ${staticResults.length} matches in static list`);
+
+            const results = staticResults.map((r: any) => ({
+                symbol: r.symbol,
+                name: r.name,
+                type: r.type,
+                exchange: r.region || "Unknown",
+            }));
+
+            // Cache these results
+            searchCache.set(q, { results, timestamp: Date.now() });
+
+            return NextResponse.json({
+                query,
+                results,
+            });
+        }
+
+        // Final fallback: local popular assets
         const popularMatches = POPULAR_ASSETS.filter((asset) => {
             const searchStr = `${asset.label} ${asset.value}`.toLowerCase();
             return searchStr.includes(q);
@@ -106,16 +130,19 @@ export async function GET(request: NextRequest) {
         // Merge with DB results
         const allResults = [...dbResults];
         const seen = new Set(allResults.map((r) => r.symbol));
-        for (const match of popularMatches) {
+        for (const match of [...staticResults, ...popularMatches]) {
+            // @ts-ignore
             if (!seen.has(match.symbol)) {
+                // @ts-ignore
                 allResults.push(match);
+                // @ts-ignore
                 seen.add(match.symbol);
             }
         }
 
         // If we have any results from fallback, return them
         if (allResults.length > 0) {
-            console.log(`[Search Fallback] Found ${allResults.length} matches in popular assets`);
+            console.log(`[Search Fallback] Found ${allResults.length} matches total`);
             searchCache.set(q, { results: allResults, timestamp: Date.now() });
 
             return NextResponse.json({
