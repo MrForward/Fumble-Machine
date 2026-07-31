@@ -88,7 +88,8 @@ Each fumble comes with a personalized message like:
 ## 🛡️ Privacy & Security
 
 - No account required
-- No personal data stored
+- No directly identifying information is collected
+- Optional aggregate analytics store country, selected asset, currency, calculated fumble amount, and emoji reactions — never your purchase description or an account identifier
 - All calculations happen in real-time
 - Open source and transparent
 
