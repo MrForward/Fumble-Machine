@@ -5,7 +5,6 @@ import { POPULAR_ASSETS, type CurrencyCode, CURRENCIES, convertFromUSD } from "@
 
 interface ReceiptProps {
     itemName: string;
-    itemPrice: number;
     itemPriceInCurrency: number;
     currency: CurrencyCode;
     assetSymbol: string;
@@ -18,7 +17,6 @@ interface ReceiptProps {
 
 export function Receipt({
     itemName,
-    itemPrice,
     itemPriceInCurrency,
     currency,
     assetSymbol,

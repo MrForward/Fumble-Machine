@@ -1,6 +1,4 @@
 
-import * as cheerio from 'cheerio';
-
 export async function fetchFromGoogleFinance(symbol: string): Promise<number | null> {
     try {
         // Map common Yahoo symbols to Google Finance format

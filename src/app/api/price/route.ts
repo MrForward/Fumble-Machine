@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import YahooFinance from "yahoo-finance2";
 import { getCachedPrice, cachePrice } from "@/lib/price-db";
 import { isCryptoSymbol, getCoinGeckoPrices } from "@/lib/coingecko";
-import { getFallbackPrice } from "@/lib/price-fallback";
+import { estimateHistoricalPrice } from "@/lib/price-fallback";
+import { fetchFromGoogleFinance } from "@/lib/google-finance";
 
 const yahooFinance = new YahooFinance({ suppressNotices: ["ripHistorical"] });
 
@@ -35,9 +36,6 @@ export async function GET(request: NextRequest) {
         const manualPrice = parseFloat(manualPriceStr);
         if (!isNaN(manualPrice) && manualPrice > 0) {
             console.log(`[API] Using manual price for ${symbolUpper}: ${manualPrice}`);
-
-            // Import lazily or assumes it is available from previous step (it is)
-            const { estimateHistoricalPrice } = require("@/lib/price-fallback");
 
             const historicalPrice = estimateHistoricalPrice(manualPrice, purchaseDate);
 
@@ -168,10 +166,8 @@ export async function GET(request: NextRequest) {
         }
     } else {
         // Step 4 (Stocks): Google Finance Backup
-        // Import lazily
         try {
             console.log(`[API] Trying Google Finance fallback for ${symbolUpper}`);
-            const { fetchFromGoogleFinance } = require("@/lib/google-finance");
             const googlePrice = await fetchFromGoogleFinance(symbolUpper);
 
             if (googlePrice) {
@@ -181,7 +177,6 @@ export async function GET(request: NextRequest) {
                 // Actually, if Yahoo failed above, it's likely dead.
                 // We will ESTIMATE historical from current using the standard algorithm
 
-                const { estimateHistoricalPrice } = require("@/lib/price-fallback");
                 const historicalPrice = estimateHistoricalPrice(googlePrice, purchaseDate);
                 const currency = symbolUpper.endsWith(".NS") ? "INR" : "USD"; // Simple heuristic
 

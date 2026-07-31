@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, TrendingDown, Search, Check, ChevronDown } from "lucide-react";
+import { CalendarIcon, Loader2, TrendingDown, Search, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -208,9 +208,6 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
         setSearchQuery("");
     };
 
-    // Get current currency symbol
-    const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol || "$";
-
     const maxDate = new Date();
     const minDate = new Date("2010-01-01");
 
@@ -303,7 +300,7 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
                                 />
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                                We'll use this price and estimate the historical value.
+                                We&apos;ll use this price and estimate the historical value.
                             </p>
                         </div>
                     )}
@@ -380,7 +377,7 @@ export function ConfessionForm({ onResult }: ConfessionFormProps) {
 
                                     {/* Show empty state only when not searching and no results */}
                                     {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                                        <CommandEmpty>No results found for "{searchQuery}"</CommandEmpty>
+                                        <CommandEmpty>No results found for &quot;{searchQuery}&quot;</CommandEmpty>
                                     )}
 
                                     {/* Search Results - Show first when there are results */}

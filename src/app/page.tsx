@@ -6,7 +6,7 @@ import { Receipt } from "@/components/receipt";
 import { ShareButton } from "@/components/share-button";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CURRENCIES, convertFromUSD } from "@/lib/roasts";
+import { CURRENCIES } from "@/lib/roasts";
 
 // Live fumble counter component - fetches config from server
 function LiveFumbleCounter() {
@@ -130,12 +130,6 @@ export default function Home() {
         return currency?.symbol || "$";
     };
 
-    const formatPrice = (amountUSD: number) => {
-        if (!result) return `$${amountUSD.toFixed(2)}`;
-        const converted = convertFromUSD(amountUSD, result.currency);
-        return `${getCurrencySymbol()}${converted.toFixed(2)}`;
-    };
-
     return (
         <div className="app-container">
             {/* Background grid effect */}
@@ -167,7 +161,6 @@ export default function Home() {
                         <div className="result-container">
                             <Receipt
                                 itemName={result.itemName}
-                                itemPrice={result.itemPrice}
                                 itemPriceInCurrency={result.itemPriceInCurrency}
                                 currency={result.currency}
                                 assetSymbol={result.assetSymbol}

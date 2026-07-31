@@ -114,7 +114,7 @@ export async function getCachedCurrentPrice(
                 return data.current_price;
             }
         }
-    } catch (err) {
+    } catch {
         // Ignore errors for optional optimization
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Download, Loader2, Share2, Image } from "lucide-react";
+import { useState } from "react";
+import { Download, Loader2, Share2, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toPng } from "html-to-image";
 import { type CurrencyCode, CURRENCIES, convertFromUSD } from "@/lib/roasts";
@@ -53,10 +53,6 @@ export function ShareButton({ assetSymbol, assetName, fumbleAmount, purchaseDate
                 backgroundColor: "#fdfdf5",
                 style: {
                     transform: "scale(1)",
-                },
-                filter: (node) => {
-                    // Filter out any problematic elements
-                    return true;
                 },
             });
 
@@ -251,7 +247,7 @@ export function ShareButton({ assetSymbol, assetName, fumbleAmount, purchaseDate
                     <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                     <>
-                        <Image className="h-5 w-5 mr-2" />
+                        <ImageIcon className="h-5 w-5 mr-2" />
                         Share Receipt Image
                     </>
                 )}

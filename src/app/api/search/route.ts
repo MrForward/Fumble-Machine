@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import YahooFinance from "yahoo-finance2";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { POPULAR_ASSETS } from "@/lib/roasts";
+import { type SearchResult } from "@/lib/roasts";
+import { searchStatic, type Ticker } from "@/lib/tickers";
 
 const yahooFinance = new YahooFinance({ suppressNotices: ["ripHistorical"] });
 
 // In-memory cache for search results
-const searchCache = new Map<string, { results: any[]; timestamp: number }>();
+const searchCache = new Map<string, { results: SearchResult[]; timestamp: number }>();
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 export async function GET(request: NextRequest) {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 2: Check Supabase for symbols we have cached prices for
-    let dbResults: any[] = [];
+    let dbResults: SearchResult[] = [];
     if (isSupabaseConfigured && supabase) {
         try {
             const { data, error } = await supabase
@@ -59,8 +60,7 @@ export async function GET(request: NextRequest) {
     console.log(`[Search API] "${q}"`);
 
     // Always fetch static results first/in-parallel because they are reliable
-    const { searchStatic } = require("@/lib/tickers");
-    let staticResults = [];
+    let staticResults: Ticker[] = [];
     try {
         // Await in case we switch to async static later
         staticResults = await searchStatic(q);
@@ -73,20 +73,21 @@ export async function GET(request: NextRequest) {
         // If Yahoo fails, we fallback to catch block.
         // If Yahoo returns [] but we have static results, we should mix them.
 
-        let apiResults: any[] = [];
+        const apiResults: SearchResult[] = [];
         try {
             const yahooData = await yahooFinance.search(query.trim());
-            apiResults = yahooData.quotes
-                .filter((quote) => {
-                    const validTypes = ["EQUITY", "ETF", "CRYPTOCURRENCY", "INDEX"];
-                    return quote.quoteType && validTypes.includes(quote.quoteType as string);
-                })
-                .map((quote) => ({
+            const validTypes = new Set(["EQUITY", "ETF", "CRYPTOCURRENCY", "INDEX"]);
+
+            for (const quote of yahooData.quotes) {
+                if (!quote.isYahooFinance || !validTypes.has(quote.quoteType)) continue;
+
+                apiResults.push({
                     symbol: quote.symbol,
                     name: quote.shortname || quote.longname || quote.symbol,
                     type: quote.quoteType,
                     exchange: quote.exchange,
-                }));
+                });
+            }
         } catch (apiError) {
             console.error("Yahoo Search API failed (using fallback):", apiError);
             // Verify if it is a rate limit or network error
@@ -95,10 +96,10 @@ export async function GET(request: NextRequest) {
         // MERGE: Static (High Quality) + API (Broad) + DB (History)
         // Priority: Static > API > DB
 
-        const combined = new Map();
+        const combined = new Map<string, SearchResult>();
 
         // 1. Add Static Results (High Confidence)
-        staticResults.forEach((r: any) => {
+        staticResults.forEach((r) => {
             combined.set(r.symbol, {
                 symbol: r.symbol,
                 name: r.name,
@@ -108,14 +109,14 @@ export async function GET(request: NextRequest) {
         });
 
         // 2. Add API Results (if not already present)
-        apiResults.forEach((r: any) => {
+        apiResults.forEach((r) => {
             if (!combined.has(r.symbol)) {
                 combined.set(r.symbol, r);
             }
         });
 
         // 3. Add DB Results
-        dbResults.forEach((r: any) => {
+        dbResults.forEach((r) => {
             if (!combined.has(r.symbol)) {
                 combined.set(r.symbol, r);
             }

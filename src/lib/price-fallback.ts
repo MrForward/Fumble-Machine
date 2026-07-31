@@ -1,6 +1,4 @@
 
-import { POPULAR_ASSETS } from "@/lib/roasts";
-
 // Approximate base prices (around 2024-2025 levels, will add randomness)
 // We use a map for O(1) look up
 const BASE_PRICES: Record<string, number> = {
