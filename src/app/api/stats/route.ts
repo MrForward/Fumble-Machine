@@ -6,8 +6,15 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const adminSecret = process.env.ADMIN_SECRET;
 
-    // If no admin secret is set, allow access (for development)
-    // In production, set ADMIN_SECRET environment variable in Vercel
+    // Fail closed in production if the admin endpoint is not configured.
+    if (!adminSecret && process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+            { error: "Admin endpoint is not configured" },
+            { status: 503 }
+        );
+    }
+
+    // Local development may omit ADMIN_SECRET. Any configured secret is enforced.
     if (adminSecret && authHeader !== `Bearer ${adminSecret}`) {
         return NextResponse.json(
             { error: "Unauthorized" },
