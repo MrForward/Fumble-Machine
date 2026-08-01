@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Courier_Prime } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({
